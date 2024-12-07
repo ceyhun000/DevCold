@@ -17,7 +17,6 @@ from telethon.tl.types import (
 )
 from googletrans import Translator
 from art import text2art
-import matplotlib.pyplot as plt
 from PIL import Image
 from pydub import AudioSegment
 from bs4 import BeautifulSoup
