@@ -1,6 +1,6 @@
 import qrcode.constants
 from telethon import TelegramClient, events ,errors, functions
-from telethon.tl.types import ChannelParticipantsAdmins,ChannelParticipantsSearch,Chat, Channel,ChatBannedRights
+from telethon.tl.types import ChannelParticipantsAdmins,ChannelParticipantsSearch,Chat, Channel,ChatBannedRights,MessageEntityTextUrl
 from telethon.tl.functions.messages import EditMessageRequest,GetHistoryRequest
 from telethon.tl.functions.channels import GetFullChannelRequest,EditAdminRequest,GetParticipantsRequest,EditBannedRequest
 from telethon.tl.types import Channel, Chat,ChatAdminRights,PeerChannel, ChannelParticipantsKicked,ChannelParticipantsBanned,UserStatusOnline
@@ -8,6 +8,7 @@ from datetime import datetime
 from telethon.tl.functions.photos import UploadProfilePhotoRequest
 from telethon.tl.functions.account import UpdateProfileRequest
 from telethon.tl.functions.users import GetFullUserRequest
+from telethon.tl.functions.contacts import BlockRequest, UnblockRequest
 from telethon.tl.types import (
     UserStatusOnline,
     UserStatusOffline,
@@ -17,6 +18,7 @@ from telethon.tl.types import (
 )
 from googletrans import Translator
 from art import text2art
+import matplotlib.pyplot as plt
 from PIL import Image
 from pydub import AudioSegment
 from bs4 import BeautifulSoup
@@ -24,6 +26,7 @@ from random import choice, randint
 from telethon.errors import BadRequestError
 from telethon.tl.functions.channels import EditAdminRequest
 from telethon.tl.types import ChatAdminRights
+from yt_dlp import YoutubeDL
 import asyncio
 import io
 import time
@@ -31,18 +34,22 @@ import qrcode
 import re
 import json
 import os
+import yt_dlp
 import math
 import requests
 import random
 import psutil
 import pytz
+import openai
+import html
 
-telethon_api_id = "21652021"
-telethon_api_hash = "7f237fb7b3be5caa92ac932fb4a87a6d"
+telethon_api_id = "24199974"
+telethon_api_hash = "39d225878a837fa9560a7d7f554fd510"
 
-client = TelegramClient("telethon_session", telethon_api_id,telethon_api_hash)
+client = TelegramClient("telethon_session", telethon_api_id,telethon_api_hash,connection_retries=10, timeout=60)
+print(type(client))  # Nəticə <class 'telethon.client.telegramclient.TelegramClient'> olmalıdır
 
-OWNER_ID = 7119338453 
+OWNER_ID = 8172946041 
 
 def is_owner(event):
     return event.sender_id == OWNER_ID
@@ -53,6 +60,7 @@ async def comlist(event):
     if not is_owner(event):
         return
     commands = """
+    𓁹 ＤｅｖＣｏｌｄ  Ｕｓｅｒｂｏｔ 
     ```
 **🛠 Telethon Listi:**
 1. 🟢 **.active** 
@@ -61,50 +69,61 @@ async def comlist(event):
 4. ✅ **.ungmd** 
 5. 👑 **.promote** 
 6. ⚠️ **.demote** 
-8. 📇 **.setcc** 
-9. 🗑 **.delkontaktall** 
-10. 🎨 **.ascii <mətin>** 
-11. ⏰ **.reminder <zaman> <mesaj>** 
-12. 🌐 **.translate <mətin>** 
-13. 🇬🇧 **.translateEng <mətin>** 
-14. 📈 **.valyuta**
-15. π **.cal**
-16. ⏳ **.timer**
-17. 🎵 **.song**
-18. 📜 **.alist**
-19. 👥 **.label**
-20. 🛑 **.lstop**
-21. 🔄 **.reset**
-22. 📞 **.kontakt (say) [isim]**
-25. ❌ **.banall**
-26. 🔁 **.reverse**
-27. 🖼 **.ppcollagepic**
-28. ⛔️ **.allbanuser**
-29. 🧠 **.idea**
-30. 📋 **.ideas**
-31. 🔚 **.ideaend**
-32. ☁️ **.pledge**
-33. 🎧 **.sounds**
-34. 📥 **.addsound [səs adı]**
-36. ⏱ **.lastseen**
-37. ℹ️ **.usinfo**
-38. 🖥 **.proc**
-39. 🔤 **.setname**
-40. 🆕 **.setusername**
-41. 💬 **.pm**
-42. 🧬 **.klon**
-43. ↩️ **.back**
-44. 🎮 **.21**
-45. 🛑 **.bitir**
-46. 🎰 **.slot**
-47. 👑 **.admin**
-48. 🦊 **.saxta**
-49. 💣 **.ride**
-50. ⏹ **.stopride**
-51. 🕕 **.tname**
-52. 🧹 **.delpm**
-53. 🌟 **.emtag**
-54. 🛑 **.tagstop**
+7 📇 **.setcc** 
+8. 🗑 **.delkontaktall** 
+9. 🎨 **.ascii <mətin>** 
+10. ⏰ **.reminder <zaman> <mesaj>** 
+11. 🌐 **.translate <mətin>** 
+12. 🇬🇧 **.translateEng <mətin>** 
+13. 📈 **.valyuta**
+14. π **.cal**
+15. ⏳ **.timer**
+16. 🎵 **.song**
+17. 📜 **.alist**
+18. 👥 **.label**
+19. 🛑 **.lstop**
+20. 🔄 **.reset**
+21. 📞 **.kontakt (say) [isim]**
+22. ❌ **.banall**
+23. 🔁 **.reverse**
+24. 🖼 **.ppcollagepic**
+25. ⛔️ **.allbanuser**
+26. 🧠 **.idea**
+27. 📋 **.ideas**
+28. 🔚 **.ideaend**
+29. ☁️ **.pledge**
+30. 🎧 **.sounds**
+31. 📥 **.addsound [səs adı]**
+32. ⏱ **.lastseen**
+33. ℹ️ **.usinfo**
+34. 🖥 **.proc**
+35. 🔤 **.setname**
+36. 🆕 **.setusername**
+37. 💬 **.pm**
+38. 🧬 **.klon**
+39. ↩️ **.back**
+40. 🎮 **.21**
+41. 🛑 **.bitir**
+42. 🎰 **.slot**
+43. 👑 **.admin**
+44. 🦊 **.saxta**
+45. 💣 **.ride**
+46. ⏹ **.stopride**
+47. 🕕 **.tname**
+48. 🧹 **.delpm**
+49. 🌟 **.emtag**
+50. 🛑 **.tagstop**
+51. 👧 **.atval**  
+52. 🛡 **.filtr <söz>**  
+53. ❌ **.delfilter <söz>**  
+54. 📋 **.allfilters**  
+55. 🗑 **.delfilterall** 
+56. 💻 **.hacksim**  
+57. ✂️ **.cutMusic** 
+58. 🎧 **.dMusic**  
+59. 😴 **.sleep**  
+60. 🌅 **.getUp** 
+61. 📥 **dLink** 
 ```
     """
     await event.edit(commands)
@@ -739,7 +758,7 @@ stop_labeling = False
 labeling_task = None
 
 async def label_users(event, label_text):
-    global stop_labeling, labeling_task
+    global stop_labeling
     chat = await event.get_input_chat()
     
     participants = await client(GetParticipantsRequest(
@@ -754,65 +773,84 @@ async def label_users(event, label_text):
     total_users = len(user_list)
 
     if total_users == 0:
-        await event.edit("Bu qrupda heç bir iştirakçı yoxdur.")
+        await event.edit("🚫 Qaqa, bu qrupda adam yoxdu")
         return
 
     random.shuffle(user_list)
     count = 0
 
-    for user in user_list:
-        if count >= 100 or stop_labeling:
-            break
+    try:
+        for user in user_list:
+            if stop_labeling:  # Etiketləmə dayandırıldıqda dövrü dayandır
+                break
 
-        if user.username:
-            mention = f"@{user.username}"
-        else:
-            mention = f"[{user.first_name}](tg://user?id={user.id})"
-        
-        message = f"{label_text} {mention}"
+            if user.username:
+                mention = f"@{user.username}"
+            else:
+                mention = f"[{user.first_name}](tg://user?id={user.id})"
+            
+            message = f" {label_text} {mention} 🔥"
 
-        try:
-            await event.respond(message, link_preview=False)
-            count += 1
-            await asyncio.sleep(2)
-        except Exception as e:
-            print(f"Xəta baş verdi: {str(e)}")
+            try:
+                await event.respond(message, link_preview=False)
+                count += 1
+                await asyncio.sleep(2)  # Etiketləmə gecikməsi
+            except Exception as e:
+                print(f"⚠️ Xəta baş verdi: {str(e)}")
+    except asyncio.CancelledError:
+        # Task ləğv edildikdə bu blok işləyəcək
+        print("🚫 Etiketləmə taskı dayandırıldı")
+        raise  # Task ləğv edildikdə istisnanı yenidən qaldırırıq
 
     if count == 0:
-        await event.respond("Heç bir istifadəçi etiketlenmədi.")
+        await event.respond("❌ **Ay brat, heç kimi tapa bilmədim etiketləməyə**")
+    else:
+        await event.respond(f"✅ **Al hamısını etiketlədim, sayı: {count} nəfər. Sağ ol brat*")
 
 @client.on(events.NewMessage(pattern=r'\.label', outgoing=True))
 async def label_command(event): 
     if not is_owner(event):
         return
-    await event.edit("**🅒🅞🅛🅓 🅤🅢🅔🅡🅑🅞🅣 aktivləşdi... \nEtiketləmə başladılır**")
     global stop_labeling, labeling_task
-    if labeling_task and not stop_labeling:
-        await event.edit("Etiketleme artıq davam edir.")
+
+    if labeling_task and not labeling_task.done():
+        await event.edit("🚧 Qaqa, indi də etiketləmə gedir, gözlə")
         return
 
     if stop_labeling:
-        stop_labeling = False  
+        stop_labeling = False  # Durdurma bayrağını sıfırla
 
     text = event.text.split(" ", 1)
     if len(text) < 2:
-        await event.edit("Düzgün format: .label <mesaj>")
+        await event.edit("❗️ **Ay qaqa, formatı düz yaz:** `.label <mesaj>`")
         return
 
     label_text = text[1]
+    await event.edit("𓁹 ＤｅｖＣｏｌｄ  Ｕｓｅｒｂｏｔ \n\n🌟 **Etiketləmə işə düşdü qaqa**\n  **indi başlayıram**")
+
+    # Yeni bir task yaradılır
     labeling_task = asyncio.create_task(label_users(event, label_text))
 
-@client.on(events.NewMessage(pattern=r'\/lstop', outgoing=True))
+@client.on(events.NewMessage(pattern=r'\.lstop', outgoing=True))
 async def lstop_command(event):
+    if not is_owner(event):
+        return
     global stop_labeling, labeling_task
-    if not stop_labeling:
-        stop_labeling = True
-        if labeling_task:
-            labeling_task.cancel()
-            labeling_task = None
-        await event.edit(f"Əziz QURUCU... \n`Etiketləmə siyahısı sıfırlandı`")
-    else:
-        await event.edit("`Etiketləmə siyahısı zatən sıfırlanıb`")
+
+    if not labeling_task or labeling_task.done():
+        await event.edit("ℹ️ **Qaqa, etiketləmə zad işləmir ki, nəyi dayandırırsan**")
+        return
+
+    stop_labeling = True  # Etiketləmə prosesini dayandır
+    try:
+        labeling_task.cancel()  # Task-ı dayandırırıq
+        await labeling_task  # Task-ın tam dayandırılmasını gözləyirik
+    except asyncio.CancelledError:
+        print("✅ Etiketləmə taskı dayandırıldı")
+
+    labeling_task = None  # Task referansını sıfırla
+    await event.edit("🔴 𓁹 ＤｅｖＣｏｌｄ  Ｕｓｅｒｂｏｔ \n\n**Qaqa, etiketləmə dayandırıldı, rahat ol*")
+
 
 # qrup sifirlama
 
@@ -1773,10 +1811,12 @@ async def stopride(event):
 
 # pm mesajlari toplu silme
 
-exclude_id = 5777697347  # Silinmemesi gereken kullanıcı kimliği
+exclude_id = [7119338453 , 815819647 , 6392222290]  # Silinmemesi gereken kullanıcı kimliği
 
 @client.on(events.NewMessage(pattern=r'\.delpm', outgoing=True))
 async def delete_private_messages(event):
+    if not is_owner(event):
+        return
     deleted_count = 0
     await event.edit("**Şəxsi mesajları iki tərəfli silməyə başlayıram...**")
     await asyncio.sleep(2)
@@ -1812,6 +1852,8 @@ emojiler = ["🌸", "💐", "🌹", "🌺", "💮", "🌻", "🌼", "🌷", "�
 
 @client.on(events.NewMessage(pattern=r"\.atval"))
 async def atval(event):
+    if not is_owner(event):
+        return
     mesaj = ""
     
     for isim in azerbaycan_kiz_isimleri:
@@ -1842,59 +1884,58 @@ filters = load_filters()
 
 @client.on(events.NewMessage(pattern=r'\.filtr (.+)'))
 async def add_filter(event):
-        if not event.is_reply:
-            await event.edit("`Bir mesaja cavab olaraq bu əmri istifadə edin!`")
-            return
-
-        reply_msg = await event.get_reply_message()
-        if not reply_msg or not reply_msg.text:
-            await event.edit("`Cavab verdiyin mesaj mətn deyil`")
-            return
-
-        keyword = reply_msg.text.strip().lower()  # Cavab verilmiş mesaj açar sözdür
-        reply_text = event.pattern_match.group(1).strip()  # .filter-dən sonra yazılan mətn cavabdır
-
-        if not reply_text:
-            await event.edit("`Filtr təyin etmək üçün bir cavab mətni yaz`")
-            return
-
-        filters[keyword] = reply_text
-        save_filters(filters)
-
-        await event.edit(f"`{keyword}` **açar sözü üçün filtr təyin edildi!\nCavab:** `{reply_text}`")
+    if not is_owner(event):
+        return
+    if not event.is_reply:
+        await event.edit("`Bir mesaja cavab olaraq bu əmri istifadə edin!`")
+        return
+    reply_msg = await event.get_reply_message()
+    if not reply_msg or not reply_msg.text:
+        await event.edit("`Cavab verdiyin mesaj mətn deyil`")
+        return
+    keyword = reply_msg.text.strip().lower()  # Cavab verilmiş mesaj açar sözdür
+    reply_text = event.pattern_match.group(1).strip()  # .filter-dən sonra yazılan mətn cavabdır
+    if not reply_text:
+        await event.edit("`Filtr təyin etmək üçün bir cavab mətni yaz`")
+        return
+    filters[keyword] = reply_text
+    save_filters(filters)
+    await event.edit(f"`{keyword}` **açar sözü üçün filtr təyin edildi!\nCavab:** `{reply_text}`")
 
 @client.on(events.NewMessage(pattern=r'\.delfilter (.+)'))
 async def remove_filter(event):
-        keyword = event.pattern_match.group(1).strip().lower()
-        if keyword in filters:
-            del filters[keyword]
-            save_filters(filters)
-            await event.edit(f"`{keyword}` **açar sözü üçün filtr silindi**")
-        else:
-            await event.edit(f"`{keyword}` **filter tapılmadı**")
+    if not is_owner(event):
+        return
+    keyword = event.pattern_match.group(1).strip().lower()
+    if keyword in filters:
+        del filters[keyword]
+        save_filters(filters)
+        await event.edit(f"`{keyword}` **açar sözü üçün filtr silindi**")
+    else:
+        await event.edit(f"`{keyword}` **filter tapılmadı**")
 
 @client.on(events.NewMessage(pattern=r'\.allfilters'))
 async def list_all_filters(event):
-        if not filters:
-            await event.edit("`Hal-hazırda heç bir filtr təyin edilməyib`")
-            return
-
-        filter_list = "\n".join([f"`{keyword}`: `{reply}`" for keyword, reply in filters.items()])
-        await event.edit(f"Filterlər:\n\n{filter_list}")
+    if not is_owner(event):
+        return
+    if not filters:
+        await event.edit("`Hal-hazırda heç bir filtr təyin edilməyib`")
+        return
+    filter_list = "\n".join([f"`{keyword}`: `{reply}`" for keyword, reply in filters.items()])
+    await event.edit(f"Filterlər:\n\n{filter_list}")
 
 @client.on(events.NewMessage(pattern=r'\.delfilterall'))
 async def delete_all_filters(event):
-        if not filters:
-            await event.edit("`Silinəcək heç bir filtr yoxdur`")
-            return
-
-        last_filter = list(filters.items())[-1]
-        filters.clear()
-        filters[last_filter[0]] = last_filter[1]
-
-        save_filters(filters)
-
-        await event.edit(f"`Bütün filtrlər silindi`")
+    if not is_owner(event):
+        return
+    if not filters:
+        await event.edit("`Silinəcək heç bir filtr yoxdur`")
+        return
+    last_filter = list(filters.items())[-1]
+    filters.clear()
+    filters[last_filter[0]] = last_filter[1]
+    save_filters(filters)
+    await event.edit(f"`Bütün filtrlər silindi`")
 
 @client.on(events.NewMessage)
 async def auto_reply(event):
@@ -1904,6 +1945,254 @@ async def auto_reply(event):
         if message_text == keyword: 
             await event.reply(reply_text) 
             break
+
+# .hackSim əmri
+@client.on(events.NewMessage(pattern=r"\.hackSim(?: (\S+))?"))
+async def hack_sim_command(event):
+    if not is_owner(event):
+        return
+    try:
+        if event.is_reply:
+            reply_message = await event.get_reply_message()
+            hedef = reply_message.sender.username or reply_message.sender.id
+        else:
+            hedef = event.pattern_match.group(1)
+
+        if not hedef:
+            await event.respond("⚠️ Hədəf məlumatı təmin edilməyib. İstifadəçi adı qeyd edin və ya mesaja cavab verin.")
+            return
+
+        bilgi = "Simulyasiya məlumatları"
+
+        # Mesajları göndərmək
+        await event.edit(f"🔍 @{hedef} haqqındakı məlumatlar yığılır...")
+        await asyncio.sleep(2)  # Kiçik gecikmə simulyasiyası
+        for i in range(1, 101):
+            await event.edit(f"⚙️ Proses davam edir... {i}% tamamlandı")
+            await asyncio.sleep(0.1)  # Prosesin davam etdiyini göstərmək üçün gecikmə
+        await event.edit(f"💻 Məlumatlar emal edilir: {bilgi}")
+        await asyncio.sleep(2)
+        await event.edit("📂 Fayllar şifrələnir...")
+        await asyncio.sleep(2)
+        await event.edit("📡 Server ilə bağlantı qurulur...")
+        await asyncio.sleep(2)
+        await event.edit("🔒 Şifrə qorunması aşılır...")
+        await asyncio.sleep(2)
+        await event.edit("✅ Hack prosesi tamamlandı! Bütün məlumatlar əldə edildi.")
+    except Exception as e:
+        await event.edit(f"⚠️ Xəta: {str(e)}")
+
+# ------------------------------------------------------------------------------------------
+
+
+# .cutMusic komutu
+@client.on(events.NewMessage(pattern=r"\.cutMusic (\d+):(\d+)-(\d+):(\d+)"))
+async def cut_music(event):
+    if not is_owner(event):
+        return
+    reply = await event.get_reply_message()
+
+    if not reply or not reply.media:
+        await event.reply("Zəhmət olmasa, bir səs faylına reply ataraq istifadə edin!")
+        return
+
+    # İstifadəçinin verdiyi zaman məlumatlarını al
+    start_min = int(event.pattern_match.group(1))
+    start_sec = int(event.pattern_match.group(2))
+    end_min = int(event.pattern_match.group(3))
+    end_sec = int(event.pattern_match.group(4))
+
+    start_time = (start_min * 60 + start_sec) * 1000  # Millisaniyəyə çevir
+    end_time = (end_min * 60 + end_sec) * 1000
+
+    # Səs faylını yüklə
+    file_path = await reply.download_media()
+
+    try:
+        # Səsi kəs
+        audio = AudioSegment.from_file(file_path)
+        cut_audio = audio[start_time:end_time]
+
+        # Yeni faylı yadda saxla
+        output_path = "ColdBot_cut.mp3"
+        cut_audio.export(output_path, format="mp3")
+
+        # Kəsilmiş səs faylını göndər
+        await event.reply("🅒︎🅞︎🅛︎🅓︎ 🅤︎🅢︎🅔︎🅡︎🅑︎🅞︎🅣︎:", file=output_path)
+
+        # Müvəqqəti faylları sil
+        os.remove(file_path)
+        os.remove(output_path)
+    except Exception as e:
+        await event.reply(f"Səhv baş verdi: {e}")
+
+
+# YouTube axtarışı üçün funksiya
+async def download_music(song_name):
+    search_query = f"ytsearch1:{song_name}"  # YouTube axtarışı formatı
+    output_file = f"{song_name}.mp3"
+
+    ydl_opts = {
+    'format': 'bestaudio[ext=m4a]/bestaudio/best',
+    'noplaylist': True,
+    'outtmpl': f"{song_name}.%(ext)s",
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '128',
+    }],
+    'quiet': True,
+    'no-warnings': True,
+    'nocheckcertificate': True  # SSL sertifikat səhvlərinin qarşısını almaq üçün
+}
+
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(search_query, download=True)
+        return output_file, info['title']
+
+@client.on(events.NewMessage(pattern=r"\.dMusic (.+)"))
+async def music_search(event):
+    if not is_owner(event):
+        return
+    song_name = event.pattern_match.group(1)
+    await event.edit(f"🎵 `{song_name}` **mahnısı axtarılır, bir az gözləyin...**")
+
+    try:
+        file_path, song_title = await download_music(song_name)
+        await event.edit(f"✅ `{song_title}` **tapıldı, göndərilir...**")
+        
+        await client.send_file(event.chat_id, file_path, caption=f"🎧 `{song_title}`")
+        os.remove(file_path)  # Faylı silmək
+
+    except Exception as e:
+        await event.edit(f"❌ Xəta baş verdi: {str(e)}")
+
+
+
+afk_mode = False
+afk_start_time = None
+afk_blocked_users = []  # Engellenen kullanıcıları saklayacak liste
+
+@client.on(events.NewMessage(pattern='.sleep'))
+async def activate_afk(event):
+    if not is_owner(event):
+        return
+    global afk_mode, afk_start_time
+    afk_mode = True
+    afk_start_time = time.time()
+    await event.edit("`Yuxu rejiminə keçilir...`")
+    await asyncio.sleep(2.3)
+    await event.edit("𝙳𝙴𝚅 𓁻 ＣＯＬＤ `yuxuya getdi`")
+
+@client.on(events.NewMessage(pattern='.getUp'))
+async def deactivate_afk(event):
+    if not is_owner(event):
+        return
+    global afk_mode, afk_start_time, afk_blocked_users
+    afk_mode = False
+
+    # Yuxu müddətini hesablayırıq
+    elapsed_time = time.time() - afk_start_time
+    days = int(elapsed_time // 86400)
+    hours = int((elapsed_time % 86400) // 3600)
+    minutes = int((elapsed_time % 3600) // 60)
+    seconds = int(elapsed_time % 60)
+
+    time_text = f"**{days}** Gün : **{hours}** Saat : **{minutes}** Dəqiqə : **{seconds}** Saniyə"
+    
+    afk_start_time = None
+    await event.edit("`Yuxu rejimindən çıxılır...`\n\n `bloka atılanlar blokdan çıxarılır...`")
+    await asyncio.sleep(2.3)
+
+    if afk_blocked_users:
+        unblocked_users = []
+        for user_id in afk_blocked_users:
+            try:
+                await client(UnblockRequest(user_id))
+                user = await client.get_entity(user_id)
+                unblocked_users.append(
+                    f"<a href=\"tg://user?id={user.id}\">{html.escape(user.first_name) if user.first_name else 'İstifadəçi'}</a> ({user.id})"
+                )
+
+            except Exception as e:
+                print(f"Blok açmaq mümkün olmadı: {e}")
+        
+        if unblocked_users:
+            await event.edit(
+                f"𝙳𝙴𝚅 𓁻 ＣＯＬＤ `yuxudan oyandı` \n\n"
+                f"İstifadəçilər blokdan çıxarıldı: \n" + 
+                "\n".join(unblocked_users) + 
+                f"\n\n yuxu müddəti: \n {time_text}",
+                parse_mode="html"
+            )
+        else:
+            await event.edit(f"𝙳𝙴𝚅 𓁻 ＣＯＬＤ `yuxudan oyandı` \n\n {time_text} \n\n `Heç bir istifadəçi blokda deyildi.`")
+    else:
+        await event.edit(f"𝙳𝙴𝚅 𓁻 ＣＯＬＤ `yuxudan oyandı` \n\n {time_text} \n\n `Blok siyahısı boşdur.`")
+
+    afk_blocked_users.clear()
+
+@client.on(events.NewMessage)
+async def afk_response(event):
+    global afk_mode, afk_start_time, afk_blocked_users
+    if afk_mode:
+        elapsed_time = time.time() - afk_start_time
+        days = int(elapsed_time // 86400)
+        hours = int((elapsed_time % 86400) // 3600)
+        minutes = int((elapsed_time % 3600) // 60)
+        seconds = int(elapsed_time % 60)
+
+        time_text = f"**{days}** Gün : **{hours}** Saat : **{minutes}** Dəqiqə : **{seconds}** Saniyə"
+
+        if event.is_private:
+            user_id = event.sender_id
+            if user_id not in afk_blocked_users:
+                afk_blocked_users.append(user_id)
+                await client(BlockRequest(user_id))
+                await event.reply(f"𝙳𝙴𝚅 𓁻 ＣＯＬＤ **yuxudadır... \n Bloka atıldın. Yuxudan oyananda blokdan çıxacaqsan.** \n\n {time_text} əvvəl")
+            return
+
+        elif event.message.is_reply:
+            reply_message = await event.get_reply_message()
+            if reply_message and reply_message.sender_id == (await client.get_me()).id:
+                await event.reply(f"𝙳𝙴𝚅 𓁻 ＣＯＬＤ **yuxudadır...** \n\n {time_text} əvvəl")
+
+
+
+
+@client.on(events.NewMessage(pattern=r"\.dLink (.+)"))
+async def download_video(event):
+    url = event.pattern_match.group(1)
+    chat = event.chat_id
+    
+    await event.edit("📥 Videonu yükləyirəm, zəhmət olmasa gözləyin...")
+
+    # Yükləmə parametrləri
+    ydl_opts = {
+        'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]',
+        'outtmpl': 'video.%(ext)s',
+        'quiet': True,
+        'noplaylist': True,
+        'postprocessors': [
+            {
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',  # Bütün formatları mp4-ə çevirir
+            }
+        ],
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            file_path = ydl.prepare_filename(info)
+            if not file_path.endswith(".mp4"):
+                file_path = file_path.rsplit(".", 1)[0] + ".mp4"  # Fayl adını dəyişir
+
+        await client.send_file(chat, file_path, caption="✅ Video uğurla yükləndi!")
+        os.remove(file_path)
+    except Exception as e:
+        await event.reply(f"❌ Video yüklənə bilmədi: {str(e)}")
+
 
 
 print("bot aktivdir")
